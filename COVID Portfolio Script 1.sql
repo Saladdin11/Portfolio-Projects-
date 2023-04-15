@@ -1,3 +1,10 @@
+Select* 
+From CovidDeaths$
+Where continent is not null 
+order  by 3, 4
+
+-- Select data we are going to be using 
+
 select location, date , total_cases, new_cases, total_deaths, population
 from CovidDeaths$
 order by 1, 2
