@@ -1,0 +1,216 @@
+-- Cleaning Data 
+
+Select*
+from NashvilleHousing 
+
+
+-- Standardize Date Format  (removing time)
+
+Select SaleDate, Convert(Date,Saledate)
+from NashvilleHousing 
+
+Update NashvilleHousing
+Set Saledate = Convert(Date,Saledate)
+
+Alter Table NashvilleHousing
+Add SaleDateConverted Date;
+
+Update NashvilleHousing
+Set SaleDateConverted = Convert(Date,Saledate)  -- Updating table with new date format
+
+Select SaleDateConverted
+from NashvilleHousing 
+
+
+-- Populate Property Address
+
+Select*
+from NashvilleHousing 
+-where PropertyAddress is null
+
+
+Select*
+from NashvilleHousing 
+order by ParcelID
+-- shows us that the same parcel ID have the same Property Address
+
+
+-- doing a self join of the table 
+
+Select A.ParcelID, A.PropertyAddress, B.ParcelID, B.PropertyAddress, ISNull(A.propertyAddress,B.PropertyAddress)  -- If A.Paddress is null then we want to populate with with B.Paddress 
+as NewPropertyAddress
+from NashvilleHousing A
+Join NashvilleHousing B
+on A.ParcelID = B.ParcelID			-- Parcel ID is the same 
+and A.[UniqueID ] <> b.[UniqueID ]    -- Unique ID is not the same
+Where A.PropertyAddress is Null 
+
+Update a
+Set PropertyAddress = ISNull(A.propertyAddress,B.PropertyAddress)
+from NashvilleHousing A
+Join NashvilleHousing B
+on A.ParcelID = B.ParcelID			
+and A.[UniqueID ] <> b.[UniqueID ]    
+Where A.PropertyAddress is Null 
+
+
+
+-- BREAKING OUT ADDRESSES INTO INDIVIDUAL COLOUMNS (ADDRESS, CITY, STATE)
+ 
+Select PropertyAddress 
+from NashvilleHousing
+-- where propertyAdress is null
+-- Order by ParcelID
+
+Select 
+Substring(PropertyAddress, 1, Charindex(',', PropertyAddress)) As Address    -- To look for a ',' in 'propertyAddress --CharIndex is specifiying a position 
+from NashvilleHousing
+
+-- To remove extra comma from results 
+
+Select 
+Substring(PropertyAddress, 1, Charindex(',', PropertyAddress)-1) As Address    -- we go back 1 from the ',' 
+from NashvilleHousing
+
+-- To Seperate City and First line of Address we can use Charindex again 
+
+Select 
+Substring(PropertyAddress, 1, Charindex(',', PropertyAddress)-1) As Address ,   -- we go back 1 from the ',' 
+Substring(PropertyAddress, Charindex(',', PropertyAddress) + 1, Len(PropertyAddress))   -- need to specify where the city name ends 
+From NashvilleHousing 
+
+--create 2 new coloumns to add a new split address
+
+Alter Table NashvilleHousing
+Add PropertySplitAddress Nvarchar(255);
+
+Update NashvilleHousing
+Set PropertySplitAddress = Substring(PropertyAddress, 1, Charindex(',', PropertyAddress)-1)
+
+Alter Table NashvilleHousing
+Add PropertySplitCity  Nvarchar(255);
+
+Update NashvilleHousing
+Set PropertySplitCity = Substring(PropertyAddress, Charindex(',', PropertyAddress) + 1, Len(PropertyAddress)) 
+
+Select * 
+From NashvilleHousing -- To make sure new coloumns have been added in the correct format 
+
+
+
+---Seperating Addresses using ParseName
+
+Select OwnerAddress 
+from NashvilleHousing
+
+Select
+ParseName(Replace(OwnerAddress,',','.'),1) -- Parsename only works with . so we must replace ',' with a '.'
+From NashvilleHousing                      -- 
+
+Select
+ParseName(Replace(OwnerAddress,',','.'),3) as OwnerSplitAddress,  
+ParseName(Replace(OwnerAddress,',','.'),2) As OwnerSplitCity,
+ParseName(Replace(OwnerAddress,',','.'),1) as OwnerSplitState
+From NashvilleHousing   
+-- This has seperated the addresses in a quicker and easier way to using a Substring 
+
+-- Now to add it into the table: 
+Alter Table NashvilleHousing
+Add OwnerSplitAddress Nvarchar(255);
+
+Update NashvilleHousing
+Set OwnerSplitAddress = ParseName(Replace(OwnerAddress,',','.'),3)
+
+Alter Table NashvilleHousing
+Add OwnerSplitCity Nvarchar(255);
+
+
+Update NashvilleHousing
+Set OwnerSplitCity = ParseName(Replace(OwnerAddress,',','.'),2)
+ 
+ 
+ Alter Table NashvilleHousing
+Add OwnerSplitState Nvarchar(255);
+
+Update NashvilleHousing
+Set OwnerSplitState = ParseName(Replace(OwnerAddress,',','.'),1)
+
+-- 3 Coloumns  now  added into our table
+
+
+
+-- Changing Y and N to Yes and No for the Sold as Vacant Field
+
+Select Distinct(SoldasVacant), count(SoldAsVacant)
+From NashvilleHousing
+Group by SoldAsVacant
+order by 2
+
+Select SoldAsVacant
+, Case When SoldAsVacant = 'y' Then 'Yes'
+When SoldAsVacant = 'N' Then 'No'
+Else SoldAsVacant
+End
+From NashvilleHousing -- now all N and Ys are turned into No and Yes using a Case Statement
+
+Update NashvilleHousing
+Set SoldAsVacant = Case When SoldAsVacant = 'y' Then 'Yes'
+When SoldAsVacant = 'N' Then 'No'
+Else SoldAsVacant
+End
+-- Update our table using our Case Statement
+
+
+
+-- REMOVING DULICATES
+
+WITH RowNumCTE AS(
+Select *,
+	ROW_NUMBER() OVER (
+	PARTITION BY ParcelID,
+				 PropertyAddress,
+				 SalePrice,
+				 SaleDate,
+				 LegalReference
+				 ORDER BY
+					UniqueID
+					) row_num
+
+From NashvilleHousing
+--order by ParcelID
+)
+Select *
+From RowNumCTE
+Where row_num > 1
+Order by PropertyAddress
+
+-- This has selected all duplicate data 
+
+WITH RowNumCTE AS(
+Select *,
+	ROW_NUMBER() OVER (
+	PARTITION BY ParcelID,
+				 PropertyAddress,
+				 SalePrice,
+				 SaleDate,
+				 LegalReference
+				 ORDER BY
+					UniqueID
+					) row_num
+
+From NashvilleHousing)
+Delete 
+From RowNumCTE
+Where row_num > 1              -- This deletes all duplicate Rows
+
+
+
+-- Deleting Unused Coloumns 
+
+Alter Table NashvilleHousing 
+Drop Column SaleDate, OwnerAddress, PropertyAddress, 
+
+Select*
+from NashvilleHousing
+
+
