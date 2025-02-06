@@ -53,3 +53,62 @@ SELECT *
 FROM world_life_expectancy
 WHERE Status = '' 
 ;
+
+
+SELECT *
+FROM world_life_expectancy
+WHERE Status IS NULL 
+;
+
+SELECT *
+FROM world_life_expectancy
+WHERE Status <> '' 
+;
+#From this we can see status is either 'Developing' Or 'Developed' 
+
+SELECT DISTINCT (Country)
+FROM world_life_expectancy 
+WHERE Status = 'Developing' 
+# We can use this to when distinct country = developing then fill the blank with 'developing'
+
+UPDATE world_life_expectancy 
+SET Status = 'Developing' 
+WHERE Country IN (SELECT DISTINCT (Country)
+					FROM world_life_expectancy 
+					WHERE Status = 'Developing' ) 
+# This hasnt worked because 'we cannot specify target table using subqueries'
+# To work around this...
+
+UPDATE world_life_expectancy t1 
+JOIN  world_life_expectancy t2	#Joining the table together allows us to filter based on the other table
+ON t1.Country = t2.Country                   
+SET t1.Status = 'Developing'     #set to 'Developing' 
+WHERE t1.Status = ''               #Where T1 is blank  #Can also set this to 'NULL' if there were Nulls that needed changing
+AND t2.Status <> '' 				#Where T2 isnt blank AND the country is the same
+AND t2.status = 'Developing' 
+;
+
+
+UPDATE world_life_expectancy t1 
+JOIN  world_life_expectancy t2	
+ON t1.Country = t2.Country                   
+SET t1.Status = 'Developed'     
+WHERE t1.Status = ''             
+AND t2.Status <> '' 				
+AND t2.status = 'Developed' 
+;
+
+SELECT *
+FROM world_life_expectancy
+WHERE `Life expectancy` = '' 
+# 2 values for life expectancy are missing, we can imputate the average of the previous and consecutive years
+
+SELECT Country, Year, `Life expectancy`
+FROM world_life_expectancy
+;
+
+SELECT Country, Year, `Life expectancy`
+FROM world_life_expectancy t1 
+JOIN world_life_expectancy t2 
+	ON t1.Country 
+;
