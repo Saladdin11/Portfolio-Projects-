@@ -1,0 +1,99 @@
+# Looking at world life expectancy data over a 15 year period
+
+# First thing to look at it the change in life expecatancy during this time,  can use min and max 
+
+SELECT Country,  Min(`Life expectancy`), Max(`Life expectancy`)
+FROM world_life_expectancy
+GROUP BY Country 
+ORDER BY Country DESC
+;
+
+# some data has 0s in 
+SELECT Country,  MIN(`Life expectancy`), MAX(`Life expectancy`)
+FROM world_life_expectancy
+GROUP BY Country 
+HAVING MIN(`Life expectancy`) <> 0
+AND MAX(`Life expectancy`) <> 0
+ORDER BY Country DESC
+;
+
+  #which countries have had the biggest increase in life expectancy
+
+SELECT Country, 
+ MIN(`Life expectancy`),
+ MAX(`Life expectancy`),
+ ROUND(MAX(`Life expectancy`) -  MIN(`Life expectancy`),1) AS Life_increase       
+FROM world_life_expectancy
+GROUP BY Country 
+HAVING MIN(`Life expectancy`) <> 0
+AND MAX(`Life expectancy`) <> 0
+ORDER BY Life_increase DESC
+
+  # lets look at average life expectancy based on year for the world average 
+
+SELECT Year, ROUND(AVG(`life expectancy`),2)
+FROM world_life_expectancy
+WHERE `Life expectancy` <> 0
+GROUP BY Year
+ORDER BY Year  
+
+SELECT * 
+FROM world_life_expectancy;
+
+  # We can look at Correlation in SQL by simply exploring data to see if we notice a pattern
+
+SELECT Country,  ROUND(AVG(`Life expectancy`),1) AS Life_Exp,  ROUND(AVG(GDP),1) AS GDP 
+FROM world_life_expectancy
+GROUP BY Country
+;
+
+SELECT Country,  ROUND(AVG(`Life expectancy`),1) AS Life_Exp,  ROUND(AVG(GDP),1) AS GDP 
+FROM world_life_expectancy
+GROUP BY Country
+HAVING Life_Exp > 0
+AND GDP > 0
+ORDER BY GDP DESC
+;  # Here we can see countries with highest gdp seem to have very high life exp
+
+SELECT Country,  ROUND(AVG(`Life expectancy`),1) AS Life_Exp,  ROUND(AVG(GDP),1) AS GDP 
+FROM world_life_expectancy
+GROUP BY Country
+HAVING Life_Exp > 0
+AND GDP > 0
+ORDER BY GDP 
+;  		#Countries with the lowest GDP tend do have lowest life Exp
+
+  # we can group data into catagories using a case satement and group on these to identifty more trends 
+  # group by high/low gdp countries and low/high life expetancy countries 
+
+SELECT *
+FROM world_life_expectancy
+ORDER BY GDP  
+
+SELECT 
+SUM(CASE 
+WHEN GDP >= 1500 THEN 1 
+ELSE 0 
+END) As High_GDP_Count
+FROM world_life_expectancy
+    #This identifies how many countires have a gdp count = or higher than 1500 which we could catogrise as high gdp
+
+SELECT 
+SUM(CASE  WHEN GDP >= 1500 THEN 1 ELSE 0 END) As High_GDP_Count,
+AVG(CASE WHEN GDP >= 1500 THEN `Life expectancy` ELSE NULL END) AS High_GDP_Life_Exp
+FROM world_life_expectancy
+;
+    # This tells us the 'High' GDP countries average Life Exp = 74 
+
+SELECT 
+SUM(CASE  WHEN GDP >= 1400 THEN 1 ELSE 0 END) As High_GDP_Count,
+AVG(CASE WHEN GDP >= 1400 THEN `Life expectancy` ELSE NULL END) AS High_GDP_Life_Exp,
+SUM(CASE  WHEN GDP <= 1400 THEN 1 ELSE 0 END) As Low_GDP_Count,
+AVG(CASE WHEN GDP <= 1400 THEN `Life expectancy` ELSE NULL END) AS Low_GDP_Life_Exp
+FROM world_life_expectancy
+;
+  # Here our result shows us our low life exp average being 64 - they indicate a strong correlation between GDP and Life Exp
+  # We could play around with 1400 number to try find sweet spot where half of the countries are 
+  # in each catagory (top half vs low half conmparison)
+
+
