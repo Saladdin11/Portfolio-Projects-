@@ -97,3 +97,26 @@ FROM world_life_expectancy
   # in each catagory (top half vs low half conmparison)
 
 
+# Lets compare whether the status ('developed or developing') of the country has a correlation with life expectancy 
+
+SELECT status, ROUND(AVG(`Life expectancy`),1)
+FROM world_life_expectancy
+GROUP BY Status
+;
+
+#lets check how many countries are within each status catagory 
+
+SELECT status, COUNT(DISTINCT Country) 
+FROM world_life_expectancy
+GROUP BY Status
+;
+ # only 32 under developed and 161 under Developing
+
+	#Lets look at if BMI has an effect
+SELECT Country, ROUND(AVG(`Life expectancy`),1) AS Life_Exp, ROUND(AVG(BMI),1) AS BMI 
+FROM world_life_expectancy
+GROUP BY Country
+HAVING Life_Exp > 0    # we want to ignore missing or incorrect data
+AND BMI > 0
+ORDER BY BMI DESC 
+ 
